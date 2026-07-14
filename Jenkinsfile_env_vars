@@ -1,0 +1,47 @@
+
+
+pipeline {
+    agent any
+
+    environment {
+        GIT_URL = 'https://github.com/devopstraininghub/mindcircuit17d.git'
+        GIT_BRANCH = 'main'
+        MAVEN_CMD = 'mvn clean install'
+        TOMCAT_URL = 'http://3.92.84.214:8081/'
+    }
+
+    stages {
+
+        stage('checkout') {
+            steps {
+                echo 'git checkout stage'
+                git branch: "${GIT_BRANCH}", url: "${GIT_URL}"
+            }
+        }
+
+        stage('build') {
+            steps {
+                echo "Build number: ${env.BUILD_NUMBER}"
+                echo 'Building with maven'
+                sh "${MAVEN_CMD}"
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Deploying to tomcat'
+                deploy adapters: [
+                    tomcat9(
+                        alternativeDeploymentContext: '',
+                        credentialsId: 'tomcat',
+                        path: '',
+                        url: "${TOMCAT_URL}"
+                    )
+                ],
+                contextPath: 'insta',
+                war: '**/*.war'
+            }
+        }
+
+    }
+}
