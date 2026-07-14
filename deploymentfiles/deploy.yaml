@@ -24,6 +24,6 @@ spec:
     spec:
       containers: 
       - name: facebook-container
-        image: saitejareddy2108/gitops:28
+        image: saitejareddy2108/gitops:29
         ports:
         - containerPort: 8080
