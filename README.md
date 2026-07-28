@@ -117,26 +117,26 @@ Trivy offers comprehensive vulnerability detection across OS packages (Debian, A
 ### High-Level Architecture
 ```mermaid
 flowchart TD
-    subgraph Developer Workspace
-        DEV[Developer] -->|Git Push| GITHUB[GitHub Source Code Repo]
+    subgraph "Developer Workspace"
+        DEV["Developer"] -->|Git Push| GITHUB["GitHub Source Code Repo"]
     end
 
-    subgraph CI Server - Jenkins
-        GITHUB -->|Webhook Trigger| JENKINS[Jenkins Pipeline]
-        JENKINS -->|1. SAST Audit| SONAR[SonarQube Server]
-        JENKINS -->|2. Build Artifact| MAVEN[Maven Packaging]
-        JENKINS -->|3. Containerize| DOCKER[Docker Build]
-        JENKINS -->|4. Vulnerability Scan| TRIVY[Trivy Security]
-        TRIVY -->|5. Publish Image| REGISTRY[(Docker Hub / ECR)]
-        JENKINS -->|6. Update Manifest| GITMANIFEST[Git Manifest Repo]
+    subgraph "CI Server - Jenkins"
+        GITHUB -->|Webhook Trigger| JENKINS["Jenkins Pipeline"]
+        JENKINS -->|1. SAST Audit| SONAR["SonarQube Server"]
+        JENKINS -->|2. Build Artifact| MAVEN["Maven Packaging"]
+        JENKINS -->|3. Containerize| DOCKER["Docker Build"]
+        JENKINS -->|4. Vulnerability Scan| TRIVY["Trivy Security"]
+        TRIVY -->|5. Publish Image| REGISTRY[("(Docker Hub / ECR)")]
+        JENKINS -->|6. Update Manifest| GITMANIFEST["Git Manifest Repo"]
     end
 
-    subgraph Target Kubernetes Cluster - AWS EKS
-        ARGO[ArgoCD Controller] -->|7. Poll Manifests| GITMANIFEST
-        ARGO -->|8. Sync & Reconcile| K8S[Kubernetes Cluster]
+    subgraph "Target Kubernetes Cluster - AWS EKS"
+        ARGO["ArgoCD Controller"] -->|7. Poll Manifests| GITMANIFEST
+        ARGO -->|8. Sync & Reconcile| K8S["Kubernetes Cluster"]
         K8S -->|Pull Image| REGISTRY
-        K8S -->|Serve Traffic| ALB[AWS Load Balancer]
-        CLIENT[End User] --> ALB
+        K8S -->|Serve Traffic| ALB["AWS Load Balancer"]
+        CLIENT["End User"] --> ALB
     end
 ```
 
@@ -147,30 +147,30 @@ flowchart TD
 ### AWS Infrastructure Architecture
 ```mermaid
 flowchart TD
-    subgraph AWS Cloud Region: us-east-1
-        subgraph VPC 10.0.0.0/16
-            subgraph Public Subnets
-                IGW[Internet Gateway]
-                ALB[AWS Load Balancer]
+    subgraph "AWS Cloud Region: us-east-1"
+        subgraph "VPC 10.0.0.0/16"
+            subgraph "Public Subnets"
+                IGW["Internet Gateway"]
+                ALB["AWS Load Balancer"]
             end
 
-            subgraph Managed EKS Cluster
-                subgraph Private Worker Node Group
-                    POD1[Pod: fb-app replica-1]
-                    POD2[Pod: fb-app replica-2]
-                    POD3[Pod: fb-app replica-3]
+            subgraph "Managed EKS Cluster"
+                subgraph "Private Worker Node Group"
+                    POD1["Pod: fb-app replica-1"]
+                    POD2["Pod: fb-app replica-2"]
+                    POD3["Pod: fb-app replica-3"]
                 end
                 
-                subgraph Control Plane Managed
-                    API[K8s API Server]
-                    ETCD[(ETCD Store)]
+                subgraph "Control Plane Managed"
+                    API["K8s API Server"]
+                    ETCD[("ETCD Store")]
                 end
 
-                subgraph System Namespace
-                    ARGO_POD[ArgoCD Application Controller]
+                subgraph "System Namespace"
+                    ARGO_POD["ArgoCD Application Controller"]
                 end
             end
-        </div>
+        end
     end
 
     ALB -->|Port 80/443| POD1
@@ -198,14 +198,14 @@ sequenceDiagram
     Developer->>Git: git push origin main
     Git-->>Jenkins: Webhook Payload Trigger
     Jenkins->>Git: Checkout Source Code
-    Jenkins->>Sonar: Execute SAST Analysis (mvn sonar:sonar)
+    Jenkins->>Sonar: Execute SAST Analysis
     Sonar-->>Jenkins: Quality Gate Passed
     Jenkins->>Jenkins: Build WAR Artifact (mvn package)
-    Jenkins->>Jenkins: Build Docker Image (tag: BUILD_NUMBER)
+    Jenkins->>Jenkins: Build Docker Image (tag BUILD_NUMBER)
     Jenkins->>Trivy: Scan Image for Vulnerabilities
     Trivy-->>Jenkins: Scan Clean (0 Critical CVEs)
-    Jenkins->>Hub: Push Image devopshubg333/batch17d:BUILD_NUMBER
-    Jenkins->>Manifest: Update deploy.yaml image tag & Git Push
+    Jenkins->>Hub: Push Image to Docker Hub
+    Jenkins->>Manifest: Update deploy.yaml & Git Push
 ```
 
 ![CI Pipeline](docs/images/ci-pipeline.png)
@@ -215,24 +215,24 @@ sequenceDiagram
 ### GitOps Workflow
 ```mermaid
 flowchart LR
-    subgraph Source Control
-        GIT[Git Repository\ndeploymentfiles/deploy.yaml]
+    subgraph "Source Control"
+        GIT["Git Repository<br/>deploymentfiles/deploy.yaml"]
     end
 
-    subgraph ArgoCD Controller
-        RECONCILE[Reconciliation Loop\nInterval: 30s]
-        DIFF[Diff Engine\nGit State vs Cluster State]
+    subgraph "ArgoCD Controller"
+        RECONCILE["Reconciliation Loop<br/>Interval: 30s"]
+        DIFF["Diff Engine<br/>Git State vs Cluster State"]
     end
 
-    subgraph AWS EKS Cluster
-        LIVE[Live Cluster State\nDeployment: fb-deploy]
-        PODS[Running Pods\nv1 -> v2]
+    subgraph "AWS EKS Cluster"
+        LIVE["Live Cluster State<br/>Deployment: fb-deploy"]
+        PODS["Running Pods<br/>v1 -> v2"]
     end
 
     GIT -->|Desired State| RECONCILE
     LIVE -->|Live State| DIFF
     RECONCILE --> DIFF
-    DIFF -->|OutOfSync Detected| APPLY[Apply Kubernetes Manifest]
+    DIFF -->|OutOfSync Detected| APPLY["Apply Kubernetes Manifest"]
     APPLY --> LIVE
     LIVE --> PODS
 ```
@@ -251,16 +251,16 @@ flowchart LR
 sequenceDiagram
     actor User
     participant Route53 as AWS Route53 DNS
-    participant ELB as AWS Classic / Application LoadBalancer
+    participant ELB as AWS LoadBalancer
     participant Service as K8s Service (fb-service)
     participant Pod as Pod Container (Tomcat 8080)
 
-    User->>Route53: Request http://app.domain.com
-    Route53-->>User: Return ELB CNAME / IP
-    User->>ELB: HTTP Request GET /
-    ELB->>Service: Forward traffic to NodePort range
-    Service->>Pod: Route via iptables/kube-proxy to Pod IP:8080
-    Pod-->>User: HTTP 200 OK (Rendered Web App)
+    User->>Route53: Request app URL
+    Route53-->>User: Return ELB IP / CNAME
+    User->>ELB: HTTP GET Request
+    ELB->>Service: Forward traffic to NodePort
+    Service->>Pod: Route via kube-proxy to Pod:8080
+    Pod-->>User: HTTP 200 OK (Rendered App)
 ```
 
 #### Docker Image Lifecycle Management
