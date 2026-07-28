@@ -36,17 +36,13 @@ This repository implements a production-grade **GitOps Continuous Integration an
 
 The delivery architecture separates CI automation (handled by **Jenkins**) from cluster deployment state management (handled by **ArgoCD**). By introducing Git as the single source of truth for application manifests, the system guarantees auditability, zero-drift security, and deterministic rollbacks.
 
-```
-       +-------------------+       +--------------------+       +-------------------+
-       |   Developer Commit| ----> |  Jenkins CI Engine | ----> |  Artifact Registry|
-       +-------------------+       +--------------------+       +-------------------+
-                                             |                                 |
-                                             v                                 v
-       +-------------------+       +--------------------+       +-------------------+
-       |  Production State | <---- |   ArgoCD Engine    | <---- |   Git Manifests   |
-       |    (AWS EKS)      |       |  (Pull Sync Loop)  |       |   (State Repo)    |
-       +-------------------+       +--------------------+       +-------------------+
-```
+<div align="center">
+
+![End-to-End CI/CD GitOps Architecture](docs/images/architecture.png)
+
+</div>
+
+---
 
 ---
 
